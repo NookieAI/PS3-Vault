@@ -681,6 +681,44 @@ async function remoteInstall(items, ps3Ip, ps3Port, srvPort, sender) {
   sender.send('install-progress', { status: 'all-done', total: items.length });
 }
 
+// ─── PS3 Quick Discovery (inline, returns first match) ───────────────────────
+// Probes every host in the /24 subnet concurrently (32 at a time) via HTTP.
+// Returns { found: true, ip } for the first PS3 detected, or { found: false }.
+async function findPs3Quick(subnet, port = 80) {
+  const ENDPOINTS = ['/index.ps3', '/cpursx.ps3', '/setup.ps3'];
+  const BATCH     = 32;
+  const TIMEOUT   = 1500;
+
+  // Probe a single host: try each webMAN endpoint and resolve true on any 2xx/302.
+  async function probeHost(ip) {
+    for (const ep of ENDPOINTS) {
+      const ok = await new Promise(resolve => {
+        const req = http.get(
+          { host: ip, port, path: ep, timeout: TIMEOUT },
+          res => { resolve(res.statusCode >= 200 && res.statusCode < 400); res.resume(); }
+        );
+        req.on('timeout', () => { req.destroy(); });
+        req.on('error',   () => resolve(false));
+        // Ensure the promise always settles even if the socket closes unexpectedly
+        req.on('close',   () => resolve(false));
+      });
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  const hosts = Array.from({ length: 254 }, (_, i) => `${subnet}.${i + 1}`);
+
+  for (let i = 0; i < hosts.length; i += BATCH) {
+    const batch   = hosts.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(async ip => ({ ip, ok: await probeHost(ip) })));
+    const match   = results.find(r => r.ok);
+    if (match) return { found: true, ip: match.ip };
+  }
+
+  return { found: false };
+}
+
 // ─── PS3 Network Discovery ────────────────────────────────────────────────────
 async function findPs3OnNetwork(sender) {
   const localIp = getLocalIp();
@@ -934,7 +972,10 @@ function setupIpc() {
 
   ipcMain.handle('stop-pkg-server', () => stopPkgServer());
 
-  ipcMain.handle('find-ps3', async (event) => {
+  // When called with (subnet, port): quick inline scan — returns { found, ip } for first match.
+  // When called without args: full modal scan via findPs3OnNetwork (sends progress events).
+  ipcMain.handle('find-ps3', async (event, subnet, port) => {
+    if (subnet) return findPs3Quick(subnet, parseInt(port, 10) || 80);
     return findPs3OnNetwork(event.sender);
   });
 }

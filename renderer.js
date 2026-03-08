@@ -616,7 +616,49 @@ function closeInstallModal() {
   closeModal('install-modal');
 }
 
-// ── Find PS3 ──────────────────────────────────────────────────────────────────
+// ── Find PS3 (inline, inside Remote Install modal) ────────────────────────────
+// Quick-scans the local /24 subnet for a PS3 running webMAN and auto-fills the IP.
+async function doFindPs3() {
+  const btn    = document.getElementById('btn-find-ps3');
+  const status = document.getElementById('ps3-find-status');
+  const port   = parseInt(document.getElementById('ps3-port').value, 10) || 80;
+
+  btn.disabled    = true;
+  btn.textContent = '⏳ Scanning…';
+  status.style.display = 'block';
+  status.style.color   = 'var(--text-muted)';
+  status.textContent   = 'Scanning local network for PS3…';
+
+  try {
+    // Derive /24 subnet from local IP (e.g. "192.168.1.100" → "192.168.1")
+    const localIp = await pkgApi.getLocalIp();
+    const parts   = localIp.split('.');
+    if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) {
+      throw new Error('Could not determine local IPv4 address. Check your network connection.');
+    }
+    const subnet = parts.slice(0, 3).join('.');
+
+    const result = await pkgApi.findPs3(subnet, port);
+
+    if (result && result.found) {
+      document.getElementById('ps3-ip').value = result.ip;
+      status.style.color   = 'var(--success)';
+      status.textContent   = `✓ Found PS3 at ${result.ip}`;
+      showToast(`PS3 found at ${result.ip}!`);
+    } else {
+      status.style.color = 'var(--danger)';
+      status.textContent = '✗ No PS3 found on local network. Enter IP manually.';
+    }
+  } catch (e) {
+    status.style.color = 'var(--danger)';
+    status.textContent = `✗ ${e.message}`;
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '🔍 Find PS3';
+  }
+}
+
+// ── Find PS3 (modal, full network scan) ───────────────────────────────────────
 function openFindPs3() {
   document.getElementById('find-ps3-progress-row').style.display = 'none';
   document.getElementById('find-ps3-results').innerHTML =

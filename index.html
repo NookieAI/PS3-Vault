@@ -625,8 +625,9 @@ td.cover-cell { width:52px; padding:4px 8px; }
         <label class="form-label">PS3 IP Address</label>
         <div style="display:flex;gap:6px;">
           <input class="form-input" id="ps3-ip" value="192.168.1.100" style="flex:1;"/>
-          <button class="btn btn-default btn-sm" id="btn-find-ps3" onclick="openFindPs3()">🔍 Find PS3</button>
+          <button class="btn btn-default btn-sm" id="btn-find-ps3" onclick="doFindPs3()">🔍 Find PS3</button>
         </div>
+        <div id="ps3-find-status" style="font-size:11px;color:var(--text-muted);margin-top:3px;display:none;"></div>
       </div>
       <div class="form-row" style="max-width:100px;"><label class="form-label">PS3 Port</label><input class="form-input" id="ps3-port" value="80" type="number"/></div>
       <div class="form-row" style="max-width:110px;"><label class="form-label">Server Port</label><input class="form-input" id="srv-port" value="8090" type="number"/></div>
