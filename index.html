@@ -621,7 +621,13 @@ td.cover-cell { width:52px; padding:4px 8px; }
       ⚠ Some selected items are from FTP — these cannot be remote-installed directly.
     </div>
     <div class="form-row-h">
-      <div class="form-row"><label class="form-label">PS3 IP Address</label><input class="form-input" id="ps3-ip" value="192.168.1.100"/></div>
+      <div class="form-row" style="flex:2;">
+        <label class="form-label">PS3 IP Address</label>
+        <div style="display:flex;gap:6px;">
+          <input class="form-input" id="ps3-ip" value="192.168.1.100" style="flex:1;"/>
+          <button class="btn btn-default btn-sm" id="btn-find-ps3" onclick="openFindPs3()">🔍 Find PS3</button>
+        </div>
+      </div>
       <div class="form-row" style="max-width:100px;"><label class="form-label">PS3 Port</label><input class="form-input" id="ps3-port" value="80" type="number"/></div>
       <div class="form-row" style="max-width:110px;"><label class="form-label">Server Port</label><input class="form-input" id="srv-port" value="8090" type="number"/></div>
     </div>
@@ -633,6 +639,25 @@ td.cover-cell { width:52px; padding:4px 8px; }
       <button class="btn btn-default" onclick="closeInstallModal()">Cancel</button>
       <button class="btn btn-primary" id="btn-send-ps3" onclick="doInstall()">📡 Send to PS3</button>
       <button class="btn btn-default hidden" id="btn-install-close" onclick="closeInstallModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Find PS3 Modal ────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="find-ps3-modal">
+  <div class="modal">
+    <div class="modal-title">🔍 Find PS3 on Network</div>
+    <button class="modal-close" onclick="closeModal('find-ps3-modal')">✕</button>
+    <div id="find-ps3-progress-row" style="display:none;">
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="find-ps3-bar"></div></div>
+      <div class="progress-label" id="find-ps3-label">Scanning network…</div>
+    </div>
+    <div id="find-ps3-results" style="margin-top:12px;min-height:60px;">
+      <div style="color:var(--text-muted);font-size:13px;">Click Scan to search for PS3 consoles on your local network.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('find-ps3-modal')">Close</button>
+      <button class="btn btn-primary" id="btn-start-find-ps3" onclick="startFindPs3()">🔍 Scan Network</button>
     </div>
   </div>
 </div>

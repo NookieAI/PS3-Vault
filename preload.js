@@ -31,11 +31,16 @@ contextBridge.exposeInMainWorld('pkgApi', {
   remoteInstall: (items, ps3Ip, ps3Port, srvPort) => ipcRenderer.invoke('remote-install', items, ps3Ip, ps3Port, srvPort),
   stopPkgServer: ()                               => ipcRenderer.invoke('stop-pkg-server'),
 
+  // PS3 discovery
+  findPs3: () => ipcRenderer.invoke('find-ps3'),
+
   // Progress events
-  onScanProgress:    (cb) => ipcRenderer.on('scan-progress',    (_e, d) => cb(d)),
-  offScanProgress:   ()   => ipcRenderer.removeAllListeners('scan-progress'),
-  onGoProgress:      (cb) => ipcRenderer.on('go-progress',      (_e, d) => cb(d)),
-  offGoProgress:     ()   => ipcRenderer.removeAllListeners('go-progress'),
-  onInstallProgress: (cb) => ipcRenderer.on('install-progress', (_e, d) => cb(d)),
-  offInstallProgress:()   => ipcRenderer.removeAllListeners('install-progress'),
+  onScanProgress:      (cb) => ipcRenderer.on('scan-progress',      (_e, d) => cb(d)),
+  offScanProgress:     ()   => ipcRenderer.removeAllListeners('scan-progress'),
+  onGoProgress:        (cb) => ipcRenderer.on('go-progress',        (_e, d) => cb(d)),
+  offGoProgress:       ()   => ipcRenderer.removeAllListeners('go-progress'),
+  onInstallProgress:   (cb) => ipcRenderer.on('install-progress',   (_e, d) => cb(d)),
+  offInstallProgress:  ()   => ipcRenderer.removeAllListeners('install-progress'),
+  onFindPs3Progress:   (cb) => ipcRenderer.on('find-ps3-progress',  (_e, d) => cb(d)),
+  offFindPs3Progress:  ()   => ipcRenderer.removeAllListeners('find-ps3-progress'),
 });

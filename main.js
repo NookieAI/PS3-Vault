@@ -493,7 +493,7 @@ async function getAllDrives() {
   if (process.platform === 'win32') {
     try {
       const { stdout } = await execAsync(
-        'powershell -Command "Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Root"',
+        'powershell -NoProfile -Command "Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Root"',
         { timeout: 8000 }
       );
       for (const line of stdout.split(/\r?\n/)) {
@@ -537,9 +537,20 @@ function startPkgServer(files, port) {
   if (pkgServer) { pkgServer.close(); pkgServer = null; }
 
   pkgServer = http.createServer(async (req, res) => {
-    const reqPath = decodeURIComponent(req.url.split('?')[0]);
-    const matched = files.find(f => '/' + encodeURIComponent(path.basename(f)) === req.url.split('?')[0] ||
-                                    '/' + path.basename(f) === reqPath);
+    // Handle HEAD for preflight
+    const method = req.method.toUpperCase();
+
+    let reqName;
+    try {
+      reqName = decodeURIComponent(req.url.split('?')[0].replace(/^\//, ''));
+    } catch {
+      reqName = req.url.split('?')[0].replace(/^\//, '');
+    }
+
+    const matched = files.find(f =>
+      path.basename(f).toLowerCase() === reqName.toLowerCase()
+    );
+
     if (!matched) {
       res.writeHead(404);
       return res.end('Not found');
@@ -550,31 +561,41 @@ function startPkgServer(files, port) {
     catch { res.writeHead(404); return res.end('Not found'); }
 
     const total = stat.size;
-    const rangeHdr = req.headers.range;
 
+    if (method === 'HEAD') {
+      res.writeHead(200, {
+        'Accept-Ranges': 'bytes',
+        'Content-Length': total,
+        'Content-Type': 'application/octet-stream',
+      });
+      return res.end();
+    }
+
+    const rangeHdr = req.headers['range'];
     let start = 0, end = total - 1;
+    let statusCode = 200;
     if (rangeHdr) {
       const m = rangeHdr.match(/bytes=(\d*)-(\d*)/);
       if (m) {
         if (m[1]) start = parseInt(m[1], 10);
         if (m[2]) end   = parseInt(m[2], 10);
+        if (isNaN(end) || end >= total) end = total - 1;
+        statusCode = 206;
       }
-      res.writeHead(206, {
-        'Content-Range':  `bytes ${start}-${end}/${total}`,
-        'Accept-Ranges':  'bytes',
-        'Content-Length': end - start + 1,
-        'Content-Type':   'application/octet-stream',
-      });
-    } else {
-      res.writeHead(200, {
-        'Accept-Ranges':  'bytes',
-        'Content-Length': total,
-        'Content-Type':   'application/octet-stream',
-      });
     }
 
+    const headers = {
+      'Accept-Ranges': 'bytes',
+      'Content-Length': end - start + 1,
+      'Content-Type': 'application/octet-stream',
+    };
+    if (statusCode === 206) {
+      headers['Content-Range'] = `bytes ${start}-${end}/${total}`;
+    }
+    res.writeHead(statusCode, headers);
     const stream = fs.createReadStream(matched, { start, end });
     stream.pipe(res);
+    stream.on('error', () => res.end());
   });
 
   pkgServer.listen(port || 8090, '0.0.0.0');
@@ -624,7 +645,7 @@ async function remoteInstall(items, ps3Ip, ps3Port, srvPort, sender) {
     }
 
     const pkgUrl = `http://${localIp}:${fileSrv}/${encodeURIComponent(item.fileName)}`;
-    const installUrl = `http://${ps3Ip}:${port}/install.ps3?pkg=${encodeURIComponent(pkgUrl)}`;
+    const installUrl = `http://${ps3Ip}:${port}/install.ps3?pkg=${pkgUrl}`;
 
     try {
       await httpGet(installUrl, 20000);
@@ -637,28 +658,18 @@ async function remoteInstall(items, ps3Ip, ps3Port, srvPort, sender) {
     }
 
     // Poll progress
-    let lastPct = 0;
-    for (let attempt = 0; attempt < 600; attempt++) {
-      await new Promise(r => setTimeout(r, 1000));
+    for (let attempt = 0; attempt < 300; attempt++) {
+      await new Promise(r => setTimeout(r, 2000));
       try {
         const { body } = await httpGet(`http://${ps3Ip}:${port}/progress.ps3`, 5000);
+        const trimmed = body.trim();
         let pct = 0;
-        const m = body.match(/(\d+(\.\d+)?)\s*%/);
-        if (m) pct = parseFloat(m[1]);
-        else {
-          const n = parseFloat(body.trim());
-          if (!isNaN(n)) pct = n;
-        }
-        if (pct !== lastPct) {
-          lastPct = pct;
-          sender.send('install-progress', {
-            idx, total: items.length, file: item.fileName, status: 'installing', percent: pct
-          });
-        }
-        if (pct >= 100) break;
+        const m = trimmed.match(/(\d+(\.\d+)?)/);
+        if (m) pct = Math.min(100, parseFloat(m[1]));
+        sender.send('install-progress', { idx, total: items.length, file: item.fileName, status: 'installing', percent: pct });
+        if (pct >= 100 || trimmed === 'OK' || trimmed === '') break;
       } catch {
-        // progress endpoint may not be available; wait and assume done after a while
-        if (attempt > 60) break;
+        if (attempt > 30) break; // give up after ~1 min if no progress endpoint
       }
     }
 
@@ -668,6 +679,67 @@ async function remoteInstall(items, ps3Ip, ps3Port, srvPort, sender) {
   }
 
   sender.send('install-progress', { status: 'all-done', total: items.length });
+}
+
+// ─── PS3 Network Discovery ────────────────────────────────────────────────────
+async function findPs3OnNetwork(sender) {
+  const localIp = getLocalIp();
+  const parts   = localIp.split('.');
+  if (parts.length < 4) return [];
+  const subnet = parts.slice(0, 3).join('.');
+
+  const results = [];
+  const hosts   = Array.from({ length: 254 }, (_, i) => `${subnet}.${i + 1}`);
+  const BATCH   = 32;
+
+  async function tcpProbe(ip, port, timeoutMs = 800) {
+    return new Promise(resolve => {
+      const sock = new net.Socket();
+      sock.setTimeout(timeoutMs);
+      sock.once('connect', () => { sock.destroy(); resolve(true); });
+      sock.once('timeout', () => { sock.destroy(); resolve(false); });
+      sock.once('error',   () => { sock.destroy(); resolve(false); });
+      sock.connect(port, ip);
+    });
+  }
+
+  async function probeHost(ip) {
+    const [web, ftp] = await Promise.all([
+      tcpProbe(ip, 80),
+      tcpProbe(ip, 21),
+    ]);
+    if (!web && !ftp) return null;
+
+    let webman = false;
+    if (web) {
+      try {
+        const { body } = await httpGet(`http://${ip}/index.ps3`, 3000);
+        webman = /ps3|webman|cobra/i.test(body);
+        if (!webman && body.length > 0) webman = true; // any response = likely PS3
+      } catch {
+        webman = true; // port 80 open on this host, assume webMAN
+      }
+    }
+    return { ip, webman, ftp };
+  }
+
+  sender.send('find-ps3-progress', { type: 'start', total: hosts.length });
+
+  for (let i = 0; i < hosts.length; i += BATCH) {
+    const batch  = hosts.slice(i, i + BATCH);
+    const found  = await Promise.all(batch.map(probeHost));
+    const valid  = found.filter(Boolean);
+    results.push(...valid);
+    sender.send('find-ps3-progress', {
+      type: 'progress',
+      done: Math.min(i + BATCH, hosts.length),
+      total: hosts.length,
+      found: results,
+    });
+  }
+
+  sender.send('find-ps3-progress', { type: 'done', found: results });
+  return results;
 }
 
 // ─── GO: copy/move with progress ──────────────────────────────────────────────
@@ -861,6 +933,10 @@ function setupIpc() {
   });
 
   ipcMain.handle('stop-pkg-server', () => stopPkgServer());
+
+  ipcMain.handle('find-ps3', async (event) => {
+    return findPs3OnNetwork(event.sender);
+  });
 }
 
 // ─── Window creation ──────────────────────────────────────────────────────────
