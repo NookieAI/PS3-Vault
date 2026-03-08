@@ -616,6 +616,67 @@ function closeInstallModal() {
   closeModal('install-modal');
 }
 
+// ── Find PS3 ──────────────────────────────────────────────────────────────────
+function openFindPs3() {
+  document.getElementById('find-ps3-progress-row').style.display = 'none';
+  document.getElementById('find-ps3-results').innerHTML =
+    '<div style="color:var(--text-muted);font-size:13px;">Click Scan to search for PS3 consoles on your local network.</div>';
+  document.getElementById('btn-start-find-ps3').disabled = false;
+  openModal('find-ps3-modal');
+}
+
+async function startFindPs3() {
+  document.getElementById('btn-start-find-ps3').disabled = true;
+  document.getElementById('find-ps3-progress-row').style.display = 'block';
+  document.getElementById('find-ps3-bar').style.width = '0%';
+  document.getElementById('find-ps3-label').textContent = 'Scanning network…';
+  document.getElementById('find-ps3-results').innerHTML = '';
+
+  function renderFound(found) {
+    if (found.length === 0) {
+      document.getElementById('find-ps3-results').innerHTML =
+        '<div style="color:var(--text-muted);font-size:13px;">No PS3 consoles found yet…</div>';
+      return;
+    }
+    document.getElementById('find-ps3-results').innerHTML = found.map(h => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;">
+        <span style="font-size:18px;">🎮</span>
+        <span style="font-weight:600;flex:1;">${esc(h.ip)}</span>
+        ${h.webman ? '<span class="badge cat-game">webMAN</span>' : ''}
+        ${h.ftp    ? '<span class="badge cat-patch">FTP</span>'    : ''}
+        <button class="btn btn-default btn-sm" data-ip="${esc(h.ip)}" onclick="usePs3Ip(this.dataset.ip)">Use This IP</button>
+      </div>`).join('');
+  }
+
+  pkgApi.onFindPs3Progress(d => {
+    if (d.type === 'start') {
+      document.getElementById('find-ps3-bar').style.width = '0%';
+      document.getElementById('find-ps3-label').textContent = `Scanning 0 / ${d.total}…`;
+    } else if (d.type === 'progress') {
+      const pct = Math.round((d.done / d.total) * 100);
+      document.getElementById('find-ps3-bar').style.width = pct + '%';
+      document.getElementById('find-ps3-label').textContent =
+        `Scanning ${d.done} / ${d.total}… (${d.found.length} found)`;
+      renderFound(d.found);
+    } else if (d.type === 'done') {
+      document.getElementById('find-ps3-bar').style.width = '100%';
+      document.getElementById('find-ps3-label').textContent =
+        `Done — ${d.found.length} PS3 console(s) found.`;
+      renderFound(d.found);
+      document.getElementById('btn-start-find-ps3').disabled = false;
+      pkgApi.offFindPs3Progress();
+    }
+  });
+
+  await pkgApi.findPs3();
+}
+
+function usePs3Ip(ip) {
+  document.getElementById('ps3-ip').value = ip;
+  closeModal('find-ps3-modal');
+  showToast(`PS3 IP set to ${ip}`);
+}
+
 // ── Find duplicates ───────────────────────────────────────────────────────────
 function findDuplicates() {
   allItems.forEach(it => { it._selected = it.isDuplicate; });
