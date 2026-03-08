@@ -64,10 +64,11 @@ function regionFromContentId(contentId) {
 /** Parse PARAM.SFO from a buffer (may be a slice from inside PKG) */
 function parseSfo(buf) {
   try {
-    // SFO magic: 0x00PSF => bytes 00 50 53 46
+    // SFO magic bytes: 0x00, 0x50, 0x53, 0x46 ('\x00PSF')
+    // Read as little-endian uint32: 0x46535000
     if (buf.length < 20) return null;
     const magic = buf.readUInt32LE(0);
-    if (magic !== 0x46535000) return null; // '\x00PSF' as LE uint32
+    if (magic !== 0x46535000) return null;
 
     const keyTableOffset  = buf.readUInt32LE(8);
     const dataTableOffset = buf.readUInt32LE(12);
@@ -878,7 +879,7 @@ function createWindow() {
       preload:            path.join(__dirname, 'preload.js'),
       contextIsolation:   true,
       nodeIntegration:    false,
-      devTools:           false,
+      devTools:           !app.isPackaged,
     },
   });
 

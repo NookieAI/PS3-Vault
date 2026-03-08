@@ -453,7 +453,6 @@ async function goSelected() {
   pkgApi.offGoProgress();
 }
 
-let goItemMap = {};
 
 function onGoProgress(total, d) {
   switch (d.type) {
@@ -783,8 +782,10 @@ document.addEventListener('DOMContentLoaded', () => {
     else fr.classList.remove('visible');
   });
 
-  // Format input preview
-  document.getElementById('rename-format').addEventListener('input', () => {});
+  // Format input (for inline format row)
+  document.getElementById('rename-format').addEventListener('input', () => {
+    // Token chips update the format; no further action needed here
+  });
 
   // Batch buttons
   document.getElementById('btn-batch-rename').addEventListener('click',  renameSelected);
