@@ -32,7 +32,7 @@ contextBridge.exposeInMainWorld('pkgApi', {
   stopPkgServer: ()                               => ipcRenderer.invoke('stop-pkg-server'),
 
   // PS3 discovery
-  findPs3: () => ipcRenderer.invoke('find-ps3'),
+  findPs3: (subnet, port) => ipcRenderer.invoke('find-ps3', subnet, port),
 
   // Progress events
   onScanProgress:      (cb) => ipcRenderer.on('scan-progress',      (_e, d) => cb(d)),
