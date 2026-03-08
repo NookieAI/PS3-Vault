@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PS3 Vault</title>
+<style>
+/* ── CSS Variables ──────────────────────────────────────────────────────────── */
+:root {
+  --accent:        #003791;
+  --accent-hover:  #002d75;
+  --accent-2:      #4a7fc1;
+  --bg:            #0a0c10;
+  --surface:       #111318;
+  --surface-2:     #1a1e27;
+  --surface-3:     #222736;
+  --border:        #2a3040;
+  --text:          #e8eaf0;
+  --text-muted:    #7a8499;
+  --text-dim:      #4a5568;
+  --success:       #22c55e;
+  --warning:       #f59e0b;
+  --danger:        #ef4444;
+  --green:         #16a34a;
+  --green-hover:   #15803d;
+  --radius:        8px;
+  --radius-sm:     4px;
+  --radius-lg:     12px;
+  --shadow:        0 4px 24px rgba(0,0,0,0.5);
+  --transition:    0.18s ease;
+}
+[data-theme="light"] {
+  --accent:        #003791;
+  --accent-hover:  #002d75;
+  --accent-2:      #4a7fc1;
+  --bg:            #f0f2f5;
+  --surface:       #ffffff;
+  --surface-2:     #e8eaf0;
+  --surface-3:     #d8dce8;
+  --border:        #c8ccd8;
+  --text:          #111318;
+  --text-muted:    #4a5568;
+  --text-dim:      #9aa0b0;
+  --success:       #16a34a;
+  --warning:       #d97706;
+  --danger:        #dc2626;
+  --green:         #16a34a;
+  --green-hover:   #15803d;
+  --shadow:        0 4px 24px rgba(0,0,0,0.12);
+}
+
+/* ── Reset & Base ───────────────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; }
+body { background:var(--bg); color:var(--text); display:flex; flex-direction:column; min-height:100vh; }
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--surface); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--accent-2); }
+
+/* ── Top Bar ────────────────────────────────────────────────────────────────── */
+.topbar {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  height:56px;
+  flex-shrink:0;
+  box-shadow:0 2px 12px rgba(0,0,0,0.3);
+}
+.topbar-logo {
+  display:flex; align-items:center; gap:10px; text-decoration:none;
+}
+.logo-svg {
+  width:36px; height:36px; flex-shrink:0;
+}
+.topbar-title {
+  display:flex; flex-direction:column; line-height:1.1;
+}
+.topbar-title span:first-child {
+  font-size:18px; font-weight:700; color:var(--text); letter-spacing:-0.3px;
+}
+.topbar-title span:last-child {
+  font-size:10px; color:var(--text-muted);
+}
+.topbar-spacer { flex:1; }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+
+.theme-toggle {
+  background:none; border:1px solid var(--border); color:var(--text-muted);
+  padding:5px 10px; border-radius:var(--radius-sm); cursor:pointer; font-size:11px;
+  transition:border-color var(--transition), color var(--transition);
+  white-space:nowrap;
+}
+.theme-toggle:hover { border-color:var(--accent-2); color:var(--text); }
+
+.menu-select {
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  padding:5px 10px; border-radius:var(--radius-sm); cursor:pointer; font-size:12px;
+  outline:none;
+}
+.menu-select:focus { border-color:var(--accent); }
+
+.discord-btn {
+  background:none; border:1px solid #5865F2; color:#5865F2;
+  padding:5px 10px; border-radius:var(--radius-sm); cursor:pointer; font-size:12px;
+  transition:background var(--transition);
+  display:flex; align-items:center; gap:5px;
+}
+.discord-btn:hover { background:rgba(88,101,242,0.15); }
+
+/* ── Controls ───────────────────────────────────────────────────────────────── */
+.controls-area {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:12px 18px;
+  flex-shrink:0;
+}
+.controls-row {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.ctrl-col { display:flex; flex-direction:column; gap:8px; }
+.ctrl-label { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+.ctrl-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.ctrl-input {
+  flex:1; min-width:0;
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  padding:7px 10px; border-radius:var(--radius-sm); font-size:13px; outline:none;
+}
+.ctrl-input:focus { border-color:var(--accent); }
+.btn {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:7px 13px; border-radius:var(--radius-sm); border:none; cursor:pointer;
+  font-size:13px; font-weight:500; transition:background var(--transition),opacity var(--transition);
+  white-space:nowrap; flex-shrink:0;
+}
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+.btn-primary   { background:var(--accent);  color:#fff; }
+.btn-primary:hover:not(:disabled)   { background:var(--accent-hover); }
+.btn-success   { background:var(--green);   color:#fff; }
+.btn-success:hover:not(:disabled)   { background:var(--green-hover); }
+.btn-default   { background:var(--surface-3); color:var(--text); border:1px solid var(--border); }
+.btn-default:hover:not(:disabled)   { background:var(--border); }
+.btn-danger    { background:var(--danger);  color:#fff; }
+.btn-danger:hover:not(:disabled)    { background:#c0392b; }
+.btn-icon      { padding:7px 9px; }
+.btn-sm { padding:5px 9px; font-size:12px; }
+
+/* Progress bar */
+.progress-row { padding:4px 0; }
+.progress-bar-wrap {
+  background:var(--surface-3); border-radius:4px; height:6px; overflow:hidden;
+  position:relative;
+}
+.progress-bar-fill {
+  height:100%; background:var(--accent); border-radius:4px;
+  transition:width 0.3s ease;
+  width:0%;
+}
+.progress-bar-fill.wiggle {
+  width:100%;
+  animation:wiggle 1.4s ease-in-out infinite;
+  background:linear-gradient(90deg,var(--accent) 0%,var(--accent-2) 50%,var(--accent) 100%);
+  background-size:200% 100%;
+}
+@keyframes wiggle {
+  0%   { transform:translateX(-60%); opacity:0.7; }
+  50%  { transform:translateX(0%);   opacity:1;   }
+  100% { transform:translateX(60%);  opacity:0.7; }
+}
+#scan-progress-row { display:none; }
+.progress-label { font-size:11px; color:var(--text-muted); margin-top:3px; }
+
+/* rename format row */
+.format-row { display:none; flex-direction:column; gap:5px; margin-top:2px; }
+.format-row.visible { display:flex; }
+.token-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.token-chip {
+  background:var(--surface-3); border:1px solid var(--border); color:var(--accent-2);
+  padding:2px 8px; border-radius:12px; font-size:11px; cursor:pointer; font-family:monospace;
+}
+.token-chip:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+/* ── Content Area ───────────────────────────────────────────────────────────── */
+.content-area {
+  flex:1; display:flex; flex-direction:column; overflow:hidden; padding:14px 18px;
+}
+.results-panel {
+  flex:1; display:flex; flex-direction:column;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  overflow:hidden;
+}
+.results-header {
+  padding:10px 14px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.results-title { font-size:15px; font-weight:700; color:var(--text); }
+.results-count { font-size:12px; color:var(--text-muted); background:var(--surface-2); padding:2px 8px; border-radius:10px; }
+.search-input {
+  flex:1; min-width:160px; max-width:280px;
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  padding:5px 10px; border-radius:var(--radius-sm); font-size:13px; outline:none;
+}
+.search-input:focus { border-color:var(--accent); }
+.results-actions { display:flex; gap:6px; margin-left:auto; }
+
+/* Category tabs */
+.cat-tabs {
+  display:flex; gap:0; border-bottom:1px solid var(--border);
+  overflow-x:auto; flex-shrink:0;
+}
+.cat-tab {
+  padding:8px 14px; font-size:12px; font-weight:500; cursor:pointer;
+  color:var(--text-muted); border-bottom:2px solid transparent;
+  white-space:nowrap; display:flex; align-items:center; gap:5px;
+  transition:color var(--transition), border-color var(--transition);
+  background:none; border-top:none; border-left:none; border-right:none;
+}
+.cat-tab:hover { color:var(--text); }
+.cat-tab.active { color:var(--accent-2); border-bottom-color:var(--accent-2); }
+.cat-badge {
+  font-size:10px; padding:1px 6px; border-radius:8px; font-weight:600;
+  background:var(--surface-3); color:var(--text-muted);
+}
+.cat-tab.active .cat-badge { background:var(--accent); color:#fff; }
+
+/* Table */
+.table-wrap { flex:1; overflow:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead { position:sticky; top:0; background:var(--surface-2); z-index:2; }
+th {
+  padding:9px 12px; text-align:left; font-size:11px; font-weight:600;
+  color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px;
+  border-bottom:1px solid var(--border); user-select:none;
+}
+th[data-sort] { cursor:pointer; }
+th[data-sort]:hover { color:var(--text); }
+th.sorted { color:var(--accent-2); }
+th.sorted::after { content:' ↑'; }
+th.sorted.desc::after { content:' ↓'; }
+td {
+  padding:8px 12px; border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+tbody tr:hover td { background:var(--surface-2); }
+tbody tr.selected td { background:rgba(0,55,145,0.12); }
+td.cover-cell { width:52px; padding:4px 8px; }
+.cover-thumb {
+  width:44px; height:44px; object-fit:cover; border-radius:4px;
+  cursor:pointer; transition:transform 0.15s;
+  background:var(--surface-3);
+}
+.cover-thumb:hover { transform:scale(1.1); }
+.cover-placeholder {
+  width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+  background:var(--surface-3); border-radius:4px; color:var(--text-dim); font-size:18px;
+}
+.title-main { font-weight:600; color:var(--text); }
+.title-id   { font-family:monospace; font-size:11px; color:var(--accent-2); }
+.title-file { font-size:11px; color:var(--text-muted); cursor:pointer; text-decoration:underline dotted; }
+.title-file:hover { color:var(--text); }
+.badge {
+  display:inline-block; padding:2px 7px; border-radius:10px; font-size:10px; font-weight:600;
+}
+.cat-game  { background:rgba(59,130,246,0.2);  color:#60a5fa; }
+.cat-patch { background:rgba(245,158,11,0.2);  color:#fbbf24; }
+.cat-dlc   { background:rgba(167,139,250,0.2); color:#a78bfa; }
+.cat-demo  { background:rgba(20,184,166,0.2);  color:#2dd4bf; }
+.cat-theme { background:rgba(249,115,22,0.2);  color:#fb923c; }
+.cat-psp   { background:rgba(236,72,153,0.2);  color:#f472b6; }
+.cat-other { background:rgba(107,114,128,0.2); color:#9ca3af; }
+.reg-usa   { background:rgba(59,130,246,0.2);  color:#60a5fa; }
+.reg-eur   { background:rgba(34,197,94,0.2);   color:#4ade80; }
+.reg-jpn   { background:rgba(239,68,68,0.2);   color:#f87171; }
+.reg-asia  { background:rgba(249,115,22,0.2);  color:#fb923c; }
+.reg-kor   { background:rgba(167,139,250,0.2); color:#a78bfa; }
+.reg-other { background:rgba(107,114,128,0.2); color:#9ca3af; }
+.badge-dup  { background:rgba(239,68,68,0.15); color:var(--danger); border:1px solid var(--danger); }
+.badge-ftp  { background:rgba(74,127,193,0.15); color:var(--accent-2); border:1px solid var(--accent-2); }
+.row-actions { display:flex; gap:4px; }
+.act-btn {
+  background:none; border:none; cursor:pointer; padding:4px 7px; border-radius:4px;
+  font-size:14px; color:var(--text-muted); transition:background var(--transition);
+}
+.act-btn:hover { background:var(--surface-3); color:var(--text); }
+.act-btn.danger:hover { color:var(--danger); }
+#empty-state {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:60px 20px; color:var(--text-muted); gap:12px;
+}
+#empty-state svg { opacity:0.2; }
+
+/* ── Modals ─────────────────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:100;
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(2px);
+}
+.modal-backdrop.hidden { display:none; }
+.modal {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:24px; min-width:380px; max-width:560px; width:90%;
+  box-shadow:var(--shadow); position:relative; max-height:90vh; overflow-y:auto;
+}
+.modal-lg { max-width:700px; }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.modal-close {
+  position:absolute; top:14px; right:14px; background:none; border:none;
+  color:var(--text-muted); cursor:pointer; font-size:18px; line-height:1;
+}
+.modal-close:hover { color:var(--text); }
+.form-row { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+.form-label { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; }
+.form-input {
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  padding:8px 10px; border-radius:var(--radius-sm); font-size:13px; outline:none;
+}
+.form-input:focus { border-color:var(--accent); }
+.form-row-h { display:flex; gap:8px; }
+.form-row-h .form-row { flex:1; }
+.modal-footer { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+.divider { border:none; border-top:1px solid var(--border); margin:12px 0; }
+
+/* GO progress modal */
+.go-item { padding:8px 0; border-bottom:1px solid var(--border); }
+.go-item:last-child { border-bottom:none; }
+.go-item-name { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+.go-progress-wrap { background:var(--surface-3); height:5px; border-radius:3px; overflow:hidden; }
+.go-progress-fill { height:100%; background:var(--accent); border-radius:3px; transition:width 0.2s; }
+.go-overall { margin-top:12px; }
+.go-overall-label { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+
+/* Install modal */
+.install-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.install-item:last-child { border-bottom:none; }
+.install-status { font-size:16px; width:22px; text-align:center; flex-shrink:0; }
+.install-info { flex:1; min-width:0; }
+.install-name { font-size:12px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.install-prog-wrap { background:var(--surface-3); height:4px; border-radius:2px; overflow:hidden; margin-top:3px; }
+.install-prog-fill { height:100%; background:var(--accent); border-radius:2px; transition:width 0.3s; }
+.warning-box {
+  background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3);
+  border-radius:var(--radius-sm); padding:10px 12px; font-size:12px; color:var(--warning);
+  margin-bottom:12px;
+}
+.info-box {
+  background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; color:var(--text-muted);
+}
+
+/* Image preview popup */
+#img-preview {
+  position:fixed; z-index:200; pointer-events:none;
+  border:2px solid var(--border); border-radius:8px; box-shadow:var(--shadow);
+  display:none; background:var(--surface); padding:4px;
+}
+#img-preview img { display:block; max-width:240px; max-height:240px; border-radius:4px; }
+
+/* Toast */
+#toast-container {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; gap:8px; z-index:999; align-items:center;
+}
+.toast {
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  padding:10px 20px; border-radius:20px; font-size:13px; box-shadow:var(--shadow);
+  animation:toastIn 0.2s ease, toastOut 0.3s ease 2.7s forwards;
+}
+.toast.error { border-color:var(--danger); color:var(--danger); }
+@keyframes toastIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+</style>
+</head>
+<body>
+
+<!-- ── Top Bar ─────────────────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg class="logo-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="36" height="36" rx="8" fill="#003791"/>
+      <text x="4" y="26" font-family="Arial,sans-serif" font-size="18" font-weight="900" fill="white">PS3</text>
+    </svg>
+    <div class="topbar-title">
+      <span>PS3 Vault</span>
+      <span>Scan &amp; organise PS3 .pkg files &nbsp; v1.0.0</span>
+    </div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-right">
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">Made by Nookie 🌙</button>
+    <select class="menu-select" id="menu-select">
+      <option value="export-csv">Export CSV</option>
+      <option value="find-dupes">Find Duplicates</option>
+      <option value="select-all">Select All</option>
+      <option value="deselect-all">Deselect All</option>
+    </select>
+    <button class="discord-btn" id="discord-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.08.11 18.1.127 18.11a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+      Discord
+    </button>
+  </div>
+</div>
+
+<!-- ── Controls ────────────────────────────────────────────────────────────── -->
+<div class="controls-area">
+  <div class="controls-row">
+    <!-- Left column -->
+    <div class="ctrl-col">
+      <div class="ctrl-label">Source</div>
+      <div class="ctrl-row">
+        <input list="src-history" class="ctrl-input" id="src-input" placeholder="Select source folder…"/>
+        <datalist id="src-history"></datalist>
+        <button class="btn btn-default" id="src-browse">Browse</button>
+        <button class="btn btn-primary" id="btn-scan">⟳ SCAN</button>
+        <button class="btn btn-default" id="btn-all-drives" title="Scan all drives">All Drives</button>
+        <button class="btn btn-default" id="btn-ftp-scan" title="FTP Scan">🌐 FTP</button>
+        <button class="btn btn-default btn-icon" id="btn-cancel" style="display:none" title="Cancel">✕</button>
+      </div>
+      <div id="scan-progress-row" class="progress-row">
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="scan-bar"></div></div>
+        <div class="progress-label" id="scan-label">Scanning…</div>
+      </div>
+    </div>
+    <!-- Right column -->
+    <div class="ctrl-col">
+      <div class="ctrl-row" style="justify-content:flex-end;">
+        <button class="btn btn-success" id="btn-go">▶ GO</button>
+        <div style="flex:1;min-width:0;">
+          <div class="ctrl-label" style="margin-bottom:4px;">Destination</div>
+          <div class="ctrl-row">
+            <input list="dest-history" class="ctrl-input" id="dest-input" placeholder="Select destination folder…"/>
+            <datalist id="dest-history"></datalist>
+            <button class="btn btn-default" id="dest-browse">Browse</button>
+          </div>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <select class="form-input" id="action-select" style="max-width:100px;">
+          <option value="copy">Copy</option>
+          <option value="move">Move</option>
+        </select>
+        <select class="form-input" id="layout-select">
+          <option value="flat">Flat</option>
+          <option value="by-title-id">By Title ID</option>
+          <option value="by-category">By Category / ID</option>
+          <option value="rename">Rename</option>
+          <option value="rename-organize">Rename + Organize</option>
+        </select>
+        <button class="btn btn-default btn-sm" id="btn-find-dupes" title="Select duplicates">⚠ Dupes</button>
+      </div>
+      <div class="format-row" id="format-row">
+        <div class="ctrl-label">Rename Format</div>
+        <div class="ctrl-row">
+          <input class="ctrl-input" id="rename-format" value="{TITLE_ID} - {TITLE}"/>
+        </div>
+        <div class="token-chips">
+          <span class="token-chip" onclick="insertToken('{TITLE_ID}')">{TITLE_ID}</span>
+          <span class="token-chip" onclick="insertToken('{TITLE}')">{TITLE}</span>
+          <span class="token-chip" onclick="insertToken('{VERSION}')">{VERSION}</span>
+          <span class="token-chip" onclick="insertToken('{CATEGORY}')">{CATEGORY}</span>
+          <span class="token-chip" onclick="insertToken('{REGION}')">{REGION}</span>
+          <span class="token-chip" onclick="insertToken('{CONTENT_ID}')">{CONTENT_ID}</span>
+          <span class="token-chip" onclick="insertToken('{REQ_FW}')">{REQ_FW}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Content ─────────────────────────────────────────────────────────────── -->
+<div class="content-area">
+  <div class="results-panel">
+    <div class="results-header">
+      <span class="results-title">PKG Library</span>
+      <span class="results-count" id="results-count">0 items</span>
+      <input class="search-input" id="search-input" placeholder="Search title, ID, file…"/>
+      <div class="results-actions">
+        <button class="btn btn-default btn-sm" id="btn-batch-rename" disabled>✏ Rename</button>
+        <button class="btn btn-default btn-sm" id="btn-batch-install" disabled>📡 Install to PS3</button>
+        <button class="btn btn-danger btn-sm" id="btn-batch-delete" disabled>🗑 Delete</button>
+      </div>
+    </div>
+    <!-- Category Tabs -->
+    <div class="cat-tabs" id="cat-tabs">
+      <button class="cat-tab active" data-cat="all">All <span class="cat-badge" id="cnt-all">0</span></button>
+      <button class="cat-tab" data-cat="game">Game <span class="cat-badge" id="cnt-game">0</span></button>
+      <button class="cat-tab" data-cat="patch">Patch <span class="cat-badge" id="cnt-patch">0</span></button>
+      <button class="cat-tab" data-cat="dlc">DLC <span class="cat-badge" id="cnt-dlc">0</span></button>
+      <button class="cat-tab" data-cat="demo">Demo <span class="cat-badge" id="cnt-demo">0</span></button>
+      <button class="cat-tab" data-cat="theme">Theme <span class="cat-badge" id="cnt-theme">0</span></button>
+      <button class="cat-tab" data-cat="psp">PSP <span class="cat-badge" id="cnt-psp">0</span></button>
+      <button class="cat-tab" data-cat="other">Other <span class="cat-badge" id="cnt-other">0</span></button>
+    </div>
+    <!-- Table -->
+    <div class="table-wrap">
+      <table id="pkg-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="chk-all"/></th>
+            <th>Cover</th>
+            <th data-sort="title">Title</th>
+            <th data-sort="baseType">Type</th>
+            <th data-sort="version">Ver</th>
+            <th data-sort="region">Region</th>
+            <th data-sort="fileSize">Size</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="pkg-tbody">
+          <tr><td colspan="8">
+            <div id="empty-state">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                <rect x="8" y="12" width="48" height="40" rx="6" stroke="currentColor" stroke-width="2"/>
+                <path d="M8 22h48" stroke="currentColor" stroke-width="2"/>
+                <circle cx="32" cy="38" r="8" stroke="currentColor" stroke-width="2"/>
+                <path d="M28 38h8M32 34v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <p>No PKG files scanned yet.<br/>Browse to a source folder and click SCAN.</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── FTP Scan Modal ──────────────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="ftp-modal">
+  <div class="modal">
+    <div class="modal-title">🌐 FTP Scan</div>
+    <button class="modal-close" onclick="closeModal('ftp-modal')">✕</button>
+    <div class="form-row-h">
+      <div class="form-row"><label class="form-label">Host</label><input class="form-input" id="ftp-host" value="192.168.1.100"/></div>
+      <div class="form-row" style="max-width:90px;"><label class="form-label">Port</label><input class="form-input" id="ftp-port" value="21" type="number"/></div>
+    </div>
+    <div class="form-row-h">
+      <div class="form-row"><label class="form-label">Username</label><input class="form-input" id="ftp-user" value="anonymous"/></div>
+      <div class="form-row"><label class="form-label">Password</label><input class="form-input" id="ftp-pass" type="password"/></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Scan Paths (one per line)</label>
+      <textarea class="form-input" id="ftp-paths" rows="4" style="resize:vertical;">/dev_hdd0/packages
+/dev_usb000
+/dev_usb001</textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="testFtpConn()">Test Connection</button>
+      <button class="btn btn-default" onclick="closeModal('ftp-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doFtpScan()">Scan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Rename Modal ────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="rename-modal">
+  <div class="modal">
+    <div class="modal-title">✏ Rename PKGs</div>
+    <button class="modal-close" onclick="closeModal('rename-modal')">✕</button>
+    <div class="form-row">
+      <label class="form-label">Format</label>
+      <input class="form-input" id="rename-modal-fmt" value="{TITLE_ID} - {TITLE}"/>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Tokens</label>
+      <div class="token-chips">
+        <span class="token-chip" onclick="insertRenameToken('{TITLE_ID}')">{TITLE_ID}</span>
+        <span class="token-chip" onclick="insertRenameToken('{TITLE}')">{TITLE}</span>
+        <span class="token-chip" onclick="insertRenameToken('{VERSION}')">{VERSION}</span>
+        <span class="token-chip" onclick="insertRenameToken('{CATEGORY}')">{CATEGORY}</span>
+        <span class="token-chip" onclick="insertRenameToken('{REGION}')">{REGION}</span>
+        <span class="token-chip" onclick="insertRenameToken('{CONTENT_ID}')">{CONTENT_ID}</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Preset</label>
+      <select class="form-input" id="rename-preset" onchange="applyRenamePreset()">
+        <option value="">Custom</option>
+        <option value="{TITLE_ID} - {TITLE}">[ID] Title</option>
+        <option value="{TITLE} ({VERSION})">[Title] (Version)</option>
+        <option value="{CONTENT_ID}">[Content ID]</option>
+        <option value="{REGION} - {TITLE_ID} - {TITLE}">[Region] - [ID] - Title</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Preview (first item)</label>
+      <div class="info-box" id="rename-preview" style="font-family:monospace;">—</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('rename-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="applyRename()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── GO Progress Modal ───────────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="go-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">▶ Transferring PKGs</div>
+    <div id="go-items-list"></div>
+    <div class="go-overall">
+      <div class="go-overall-label">Overall: <span id="go-overall-label">0 / 0</span></div>
+      <div class="go-progress-wrap"><div class="go-progress-fill" id="go-overall-bar" style="width:0%"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" id="btn-go-cancel" onclick="cancelGo()">Cancel</button>
+      <button class="btn btn-primary hidden" id="btn-go-close" onclick="closeModal('go-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Remote Install Modal ────────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="install-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">📡 Remote Install via webMAN</div>
+    <button class="modal-close" onclick="closeInstallModal()">✕</button>
+    <div class="warning-box" id="install-ftp-warning" style="display:none;">
+      ⚠ Some selected items are from FTP — these cannot be remote-installed directly.
+    </div>
+    <div class="form-row-h">
+      <div class="form-row"><label class="form-label">PS3 IP Address</label><input class="form-input" id="ps3-ip" value="192.168.1.100"/></div>
+      <div class="form-row" style="max-width:100px;"><label class="form-label">PS3 Port</label><input class="form-input" id="ps3-port" value="80" type="number"/></div>
+      <div class="form-row" style="max-width:110px;"><label class="form-label">Server Port</label><input class="form-input" id="srv-port" value="8090" type="number"/></div>
+    </div>
+    <div class="info-box" style="margin-bottom:12px;">
+      Local IP: <strong id="local-ip-display">—</strong> &nbsp; webMAN will fetch PKGs from this machine.
+    </div>
+    <div id="install-items-list" style="max-height:280px;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeInstallModal()">Cancel</button>
+      <button class="btn btn-primary" id="btn-send-ps3" onclick="doInstall()">📡 Send to PS3</button>
+      <button class="btn btn-default hidden" id="btn-install-close" onclick="closeInstallModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Image Preview Popup ─────────────────────────────────────────────────── -->
+<div id="img-preview"><img id="img-preview-img" src="" alt=""/></div>
+
+<!-- ── Toast Container ────────────────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<script>
+function insertToken(token) {
+  const el = document.getElementById('rename-format');
+  const s = el.selectionStart, e = el.selectionEnd;
+  el.value = el.value.slice(0, s) + token + el.value.slice(e);
+  el.selectionStart = el.selectionEnd = s + token.length;
+  el.focus();
+  el.dispatchEvent(new Event('input'));
+}
+function insertRenameToken(token) {
+  const el = document.getElementById('rename-modal-fmt');
+  const s = el.selectionStart, e = el.selectionEnd;
+  el.value = el.value.slice(0, s) + token + el.value.slice(e);
+  el.selectionStart = el.selectionEnd = s + token.length;
+  el.focus();
+  el.dispatchEvent(new Event('input'));
+}
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+</script>
+<script src="renderer.js"></script>
+</body>
+</html>
